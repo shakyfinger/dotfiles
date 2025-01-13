@@ -1,0 +1,56 @@
+
+change root=partuuid to root=/dev/sdax under /EFI/refind/refind.conf
+rmv arch iso options in refind_linux.conf
+arch icon: fatlabel /dev/sdax ARCH
+
+cfdisk
+
+mkfs.ext4 /dev/root_partition
+mkswap /dev/swap_partition
+
+# efi system partition
+mount esp /mnt
+cp -a esp /espback
+umount esp
+blkid > /espback/ids
+vim espback/ids
+sgdisk --delete=1 /dev/sda
+cat /espback/ids
+sgdisk --align-end --largest-new=0 --typecode=0:ef00 --change-name=0:'EFI system partition' \
+    --partition-guid=0:YYYYYYYY-YYYY-YYYY-YYYY-YYYYYYYYYYYY /dev/sda
+mkfs.fat -F 32 -i XXXXXXXX /dev/sda1
+mount /dev/root_partition /mnt
+mount --mkdir /dev/sda1 /mnt/boot
+swapon /dev/swap_partition
+cp -a /espback/. /mnt/boot
+
+pacstrap -K /mnt base linux linux-firmware vim
+genfstab -U /mnt >> /mnt/etc/fstab
+arch-chroot /mnt
+locale-gen 
+vim /etc/locale.gen # uncomment en_US.UTF-8
+vim /etc/locale.conf # write LANG=en_US.UTF-8
+vim /etc/hostname # write hostname
+mkinitcpio -P
+passwd
+pacman -S refind
+vim /boot/EFI/refind/refind.conf # change root from uuid to /dev/sda6
+vim /boot/refind_linux.conf # delete archiso entries
+
+packages {
+    nvim, rofi-wayland, hyprland, hyprpaper, vivaldi, nvidia suite, screenshot util, ttf-iosevka-nerd
+  }
+
+config {
+    hyprland,
+    
+    make notes: vivaldi
+    done: fish, wifi(on laptop), rofi, kitty, nvim
+
+    kitty {
+        kitten themes: nord
+      }
+  }
+
+
+
